@@ -1,0 +1,7 @@
+1. when user create notification, then notification is stored in database, but due to some issue notification is not
+published to rabbitmq we return internal server error to user , but notification is in database . we need to tackle
+this issue
+
+2. routing keys are messed around
+       1. load_all_routing_leys() "queue/producer.rs"
+       2. create_queue_bind() "queue/producer.rs"

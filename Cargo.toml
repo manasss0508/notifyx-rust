@@ -1,0 +1,31 @@
+[package]
+name = "notifyx-rust"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+#========================== ASYNC RUNTIME
+tokio= {version = "1",features = ["full"]} # beacuse axum run upon tokio
+#========================== DATABASE
+sqlx={version = "0.7",features = ["postgres","runtime-tokio-rustls","chrono","macros","uuid"]}
+chrono={version = "0.4",features = ["serde"]}
+#========================== AXUM
+axum="0.7" # axum
+serde={version = "1", features = ["derive"]} # for serialization and deserialization
+serde_json = "1" # for working with json values
+tower-http = {version = "0.5", features = ["trace"]} # middleware layers
+#========================== RBMQ & LAPIN
+lapin= "2.3"
+futures-util = "0.3" # for consumer stream
+#========================== ERROR
+thiserror="2"
+#========================== JWT
+#jsonwebtoken = "10.4" # for jwt
+#argon2 = "0.5" # password hashing
+#rand_core = {version = "0.6", features = ["std"]} # used by argon2
+#========================== other utilities
+uuid = {version = "1.24.0",features = ["v4","serde"]}
+validator = {version = "0.20.0", features = ["derive"]}
+dotenvy="0.15"# environment variable
+tracing = "0.1"# use to generate events and span
+tracing-subscriber = {version = "0.3", features = ["fmt","env-filter"]} # used to consume the span and print that span
