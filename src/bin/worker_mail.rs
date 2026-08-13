@@ -24,5 +24,6 @@ async fn main() {
     };
 
     // process each message
+    println!("worker started");
     process_each_message_mail(app_state,consumer).await;
 }
