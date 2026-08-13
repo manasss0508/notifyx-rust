@@ -3,7 +3,7 @@ use axum::{
     http::StatusCode,
 };
 use lapin::{Connection, ConnectionProperties, Channel, options::{BasicPublishOptions, QueueDeclareOptions}, BasicProperties, Consumer};
-use lapin::options::{BasicConsumeOptions, QueueBindOptions};
+use lapin::options::{BasicConsumeOptions, QueueBindOptions, QueueDeleteOptions};
 use lapin::types::FieldTable;
 use uuid::Uuid;
 use crate::datamodels::rbmq::notifation::NotifMsg;
@@ -132,7 +132,7 @@ impl QueueConn {
         // queue not exits , create queue
         if !queue_exits {
             let channel = self.ch().await?; // channel for creating queue and binding
-            
+
             // create queue
             let queue = channel.queue_declare(
                 &queue_name,
@@ -163,7 +163,21 @@ impl QueueConn {
                     nowait: false,
                 },
                 FieldTable::default()
-            ).await?;
+            ).await;
+
+            // if binding fails delete that queue
+            if let Err(e) = res {
+                // deleting queue
+                if let Err(e) = channel.queue_delete(queue.name().as_str(),QueueDeleteOptions{
+                    if_unused: false,
+                    if_empty: false,
+                    nowait: false
+                }).await {
+                    return Err(AppError::Queue(e))
+                }
+                
+                return Err(AppError::Queue(e))
+            }
 
             return Ok(queue)
         }
