@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use validator::Validate;
@@ -10,7 +11,7 @@ pub struct CreateNotificationRequest{
     #[validate(email)]
     pub recipient: String,
     pub template: String, //later we will convert this to enum type
-    pub name: String,
+    pub variables: HashMap<String,String>,
     #[serde(default="low_value")]
     pub priority: String,
     pub schedule_at: Option<chrono::DateTime<chrono::Utc>>

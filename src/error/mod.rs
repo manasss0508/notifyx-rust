@@ -49,7 +49,10 @@ pub enum AppError {
     Serialization(#[from] serde_json::Error),
 
     #[error("deserialization failed")]
-    Deserialization(serde_json::Error)
+    Deserialization(serde_json::Error),
+
+    #[error("serde_json::value conversion to string failed")]
+    SerdeValueToJsonStringFailed
 
 }
 

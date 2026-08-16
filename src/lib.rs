@@ -6,3 +6,4 @@ pub mod configuration; //
 pub mod queue; // rabbitmq
 pub mod error; // definition of error that will be used in project
 pub mod worker; // processing thing related to worker
+pub mod template_engine;

@@ -1,10 +1,10 @@
-CREATE TABLE notifications
+CREATE TABLE IF NOT EXISTS notifications
 (
     id             UUID PRIMARY KEY NOT NULL,           -- notification id
     channel TEXT NOT NULL ,
     recipient      TEXT             NOT NULL,           -- mail or number
     template       TEXT             NOT NULL,           -- message template
-    name           TEXT             NOT NULL,           -- variable name
+    variables           TEXT             NOT NULL,           -- variable name
     status         TEXT             NOT NULL,           -- status of notifcation "PENDING", "PROCESSING", "SENT", "FAILED", "RETRYING"
     priority       TEXT             NOT NULL,           -- "LOW", "MEDIUM", "HIGH"
     scheduled_at   TIMESTAMP WITH TIME ZONE,                           -- when notification should be sent

@@ -11,7 +11,7 @@ pub struct Notification {
     pub channel: String,
     pub recipient: String,
     pub template: String,
-    pub name: String,
+    pub variables: String,
     pub status: String, // "PENDING", "PROCESSING", "SENT", "FAILED", "RETRYING"
     pub priority: String, // "LOW", "MEDIUM", "HIGH"
     pub scheduled_at: Option<chrono::DateTime<chrono::Utc>>,

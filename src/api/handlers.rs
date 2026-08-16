@@ -20,8 +20,8 @@ use crate::repository::notification::{db_create_notification, db_get_notificatio
 pub async fn create_notification_handler(State(app_state):State<SharedState>,
                                          Json(payload): Json<CreateNotificationRequest>)
     -> Result<Json<CreateNotificationResponse>,AppError>{
-    tracing::info!("creating notification");
-
+    tracing::info!("creating notification, notif : {:?}",&payload);
+    
     // validation
     notification_validation(&payload)?;
     tracing::info!("notification validation success");
@@ -51,6 +51,7 @@ pub async fn create_notification_handler(State(app_state):State<SharedState>,
         notification_id: created_notif.id,
         status: created_notif.status,
     }))
+
 }
 
 pub async fn get_notification_handler(Path(notification_id):Path<Uuid>,

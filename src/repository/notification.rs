@@ -9,11 +9,13 @@ use crate::error::AppError;
 // to create notification in database
 pub async fn db_create_notification(conn: &PgPool, notif_id: Uuid, notif: &CreateNotificationRequest, notif_status: String)
                                 -> Result<Notification,AppError> {
+    let variables = serde_json::to_string(&notif.variables)?;
+
     // without schedule_at
     sqlx::query_as!(
         Notification,
         r#"
-INSERT INTO notifications(id,channel,recipient,template,name,priority,status)
+INSERT INTO notifications(id,channel,recipient,template,variables,priority,status)
 VALUES ($1,$2,$3,$4,$5,$6,$7)
 RETURNING *;
 "#,
@@ -21,7 +23,7 @@ RETURNING *;
         &notif.channel,
         &notif.recipient,
         &notif.template,
-        &notif.name,
+        variables.as_str(),
         &notif.priority,
         notif_status
     ).fetch_one(conn)

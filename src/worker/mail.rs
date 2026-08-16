@@ -14,7 +14,7 @@ pub async fn process_each_message_mail(state: SharedState,mut consumer: Consumer
     while let Some(msg) = consumer.next().await {
         match msg {
             Ok(mut msg) => {
-                println!("message recieved");
+                println!("message recieved`");
 
                 // creating owner
                 let state = Arc::clone(&state);
