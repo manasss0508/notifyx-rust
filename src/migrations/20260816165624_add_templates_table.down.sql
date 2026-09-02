@@ -1,1 +1,1 @@
-DROP TABLE IF EXITS templates;
+DROP TABLE IF EXISTS templates;

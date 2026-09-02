@@ -4,7 +4,10 @@ use crate::configuration::api_state::SharedState;
 use futures_util::StreamExt;
 use lapin::options::BasicAckOptions;
 use tokio::spawn;
-use crate::service::worker::deserialize_message;
+use crate::service::{
+    worker::deserialize_message,
+    template_render::template_render,
+};
 use crate::repository::notification::db_get_notification;
 
 pub async fn process_each_message_mail(state: SharedState,mut consumer: Consumer){
@@ -47,12 +50,32 @@ pub async fn process_each_message_mail(state: SharedState,mut consumer: Consumer
                    };
                     println!("{:?}",notification);
 
-                    // create template
+
+                    // get template
+                    let template = match (*state).template_cache.get_template_mail(&(*state).db_pool,
+                                          &notification.template,
+                                             &notification.channel,
+                    ).await {
+                        Ok(template) => {
+                            template
+                        },
+                        Err(e) => {
+                            return;
+                        }
+                    };
+
+
+                    // render template
+                    let (subject, body) = template_render(template,&notification.variables);
+
+                    println!("subject: {}, \
+                    body: {}",subject,body);
 
                     // send mail
 
                     // acknowledge message
-                    message.acker.ack(BasicAckOptions::default());
+                    message.acker.ack(BasicAckOptions::default()).await;
+
 
                 });
             }

@@ -2,6 +2,7 @@ use tracing_subscriber::prelude::*;
 use crate::repository::create_connection::create_db_pool;
 use crate::configuration::api_state::{AppState,SharedState};
 use crate::queue;
+use crate::template_engine::cache::TemplateCache;
 
 // loads all basic configuration and initialize application state for API
 pub async fn load() -> SharedState {
@@ -21,8 +22,11 @@ pub async fn load() -> SharedState {
     // creating rabbitmq connection
     let rbmq = queue::producer::QueueConn::new().await;
 
+    // template cache
+    let cache = TemplateCache::new();
+
     // application state
-    let app_state = AppState::new(db,rbmq);
+    let app_state = AppState::new(db,rbmq,cache);
 
     app_state
 }
@@ -45,8 +49,11 @@ pub async fn load_for_worker() -> SharedState {
     // creating rabbitmq connection
     let rbmq = queue::producer::QueueConn::new().await;
 
-    // application state
-    let app_state = AppState::new(db,rbmq);
+    // template cache
+    let cache = TemplateCache::new();
 
+    // application state
+    let app_state = AppState::new(db,rbmq,cache);
+    
     app_state
 }
