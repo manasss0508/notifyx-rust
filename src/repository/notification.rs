@@ -5,6 +5,7 @@ use std::convert::From;
 use crate::datamodels::database::notifaction::Notification;
 use crate::datamodels::notification::CreateNotificationRequest;
 use crate::error::AppError;
+use crate::error::AppError::DbNotFound;
 
 // to create notification in database
 pub async fn db_create_notification(conn: &PgPool, notif_id: Uuid, notif: &CreateNotificationRequest, notif_status: String)
@@ -59,4 +60,42 @@ WHERE id=$1;
     // if notfication not extis in database
     tracing::error!("database: notification not available in database ", );
     Err(AppError::DbNotFound)
+}
+
+pub async fn db_update_notification_status(conn: &PgPool,notif_id:Uuid, status: &str) -> Result<(),AppError> {
+    let res = sqlx::query!(
+        r#"
+UPDATE notifications
+SET status=$2
+WHERE id=$1
+RETURNING *;
+"#,
+        notif_id,
+        status
+    ).fetch_optional(conn)
+        .await
+        .map_err(|e|{
+        tracing::error!("database : {:?}", e);
+        AppError::Database(e)
+    });
+
+    match res {
+        // query execute
+        Ok(row) => {
+            match row {
+                // record updated
+                Some(_) => {
+                    Ok(())
+                },
+                // record not available
+                None => {
+                    Err(AppError::DbNotFound)
+                }
+            }
+        },
+        // query failed
+        Err(e) => {
+            Err(e)
+        }
+    }
 }

@@ -7,7 +7,7 @@ async fn main() {
     const WORKER_TYPE:&str = "MAIL";
 
     // loading all configuration
-    let app_state = config::load_for_worker().await;
+    let app_state = config::load().await;
 
     // create and consume queue
     let queue_name = std::env::var("RABBITMQ_QUEUE_MAIL_NAME")

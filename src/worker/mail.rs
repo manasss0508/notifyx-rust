@@ -1,14 +1,15 @@
+use std::result;
 use std::sync::Arc;
 use lapin::Consumer;
 use crate::configuration::api_state::SharedState;
 use futures_util::StreamExt;
-use lapin::options::BasicAckOptions;
+use lapin::options::{BasicAckOptions, BasicNackOptions};
 use tokio::spawn;
 use crate::service::{
     worker::deserialize_message,
     template_render::template_render,
 };
-use crate::repository::notification::db_get_notification;
+use crate::repository::notification::{db_get_notification, db_update_notification_status};
 
 pub async fn process_each_message_mail(state: SharedState,mut consumer: Consumer){
     println!("message processing started");
@@ -68,14 +69,54 @@ pub async fn process_each_message_mail(state: SharedState,mut consumer: Consumer
                     // render template
                     let (subject, body) = template_render(template,&notification.variables);
 
-                    println!("subject: {}, \
-                    body: {}",subject,body);
 
                     // send mail
+                    let mail_sent = (*state).email_service.send(
+                        notification.recipient.as_str(),
+                        subject.as_str(),
+                        body.as_str(),
+                    ).await;
 
-                    // acknowledge message
-                    message.acker.ack(BasicAckOptions::default()).await;
+                    match mail_sent {
+                        Ok(_) => {
+                            println!("mail sent");
 
+                            // acknowledge message
+                            message.acker.ack(BasicAckOptions::default()).await;
+
+                            // update in db that mail is sent
+                            let result = db_update_notification_status(
+                                &(*state).db_pool,
+                                notification.id,
+                                "SENT",
+                            ).await;
+
+                            if let Err(e) = result {
+                                println!("notification status update failed : {}",e)
+                            }
+
+                        },
+                        Err(e) => {
+                            println!("mail failed to sent : {}", e);
+
+                            // acknowledge message
+                            message.acker.nack(BasicNackOptions{
+                                multiple: false,
+                                requeue: false,
+                            }).await;
+
+                            // update in db that mail is sent
+                            let result = db_update_notification_status(
+                                &(*state).db_pool,
+                                notification.id,
+                                "FAILED",
+                            ).await;
+
+                            if let Err(e) = result {
+                                println!("notification status update failed : {}",e)
+                            }
+                        },
+                    }
 
                 });
             }

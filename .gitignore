@@ -1,2 +1,4 @@
 /target
 .env
+./container_env
+./.sqlx 

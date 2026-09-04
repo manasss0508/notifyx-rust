@@ -30,7 +30,7 @@ pub enum AppError {
     Validation(String),
 
     // error related to database operation
-    #[error("database operation failed")]
+    #[error("database operation failed {0}")]
     Database(#[from] sqlx::Error), //()
 
     // if notification not found in database
@@ -38,21 +38,30 @@ pub enum AppError {
     DbNotFound,
 
     // error related to rabbitmq
-    #[error("message queue operation failed")]
+    #[error("message queue operation failed {0}")]
     Queue(#[from] lapin::Error),
 
     #[error("routing key not exist")]
     RoutingKeyNotExist,
 
     //
-    #[error("serialization failed")]
+    #[error("serialization failed {0}")]
     Serialization(#[from] serde_json::Error),
 
-    #[error("deserialization failed")]
+    #[error("deserialization failed {0}")]
     Deserialization(serde_json::Error),
 
     #[error("serde_json::value conversion to string failed")]
-    SerdeValueToJsonStringFailed
+    SerdeValueToJsonStringFailed,
+
+    #[error("error occurred with SMTP server {0}")]
+    Smtp(#[from]lettre::transport::smtp::Error),
+
+    #[error("SMTP email parsing failed for {0}")]
+    SmtpMailParsing(#[from]lettre::address::AddressError),
+
+    #[error("SMTP mail error : {0}")]
+    SmtpMail(#[from]lettre::error::Error)
 
 }
 

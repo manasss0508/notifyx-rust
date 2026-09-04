@@ -17,6 +17,8 @@ tower-http = {version = "0.5", features = ["trace"]} # middleware layers
 #========================== RBMQ & LAPIN
 lapin= "2.3"
 futures-util = "0.3" # for consumer stream
+#========================== SMTP
+lettre = { version = "0.11",default-features = false, features = ["builder","tokio1","smtp-transport", "tokio1-rustls-tls"] }
 #========================== ERROR
 thiserror="2"
 #========================== JWT
