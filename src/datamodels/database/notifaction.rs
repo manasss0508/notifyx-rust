@@ -22,3 +22,8 @@ pub struct Notification {
     pub sent_at: Option<chrono::DateTime<chrono::Utc>>,
     pub failure_reason: Option<String>,
 }
+
+#[derive(Clone, Debug,Deserialize,FromRow)]
+pub struct NotificationRetryCount {
+    pub retry_count : i32,
+}

@@ -1,9 +1,11 @@
 use axum::http::StatusCode;
-use sqlx::PgPool;
+use sqlx::{query, PgPool, query_as};
 use uuid::Uuid;
 use std::convert::From;
-use crate::datamodels::database::notifaction::Notification;
-use crate::datamodels::notification::CreateNotificationRequest;
+use crate::datamodels::{
+    database::notifaction::{Notification,NotificationRetryCount},
+    notification::CreateNotificationRequest,
+};
 use crate::error::AppError;
 use crate::error::AppError::DbNotFound;
 
@@ -86,6 +88,80 @@ RETURNING *;
                 // record updated
                 Some(_) => {
                     Ok(())
+                },
+                // record not available
+                None => {
+                    Err(AppError::DbNotFound)
+                }
+            }
+        },
+        // query failed
+        Err(e) => {
+            Err(e)
+        }
+    }
+}
+
+pub async fn db_update_notification_retry_count(conn: &PgPool,notif_id:Uuid, retry_count: i32) -> Result<(),AppError> {
+    let res = query!(
+        r#"
+UPDATE notifications
+SET retry_count=$2
+WHERE id=$1
+"#,
+        notif_id,
+        retry_count,
+    ).fetch_optional(conn)
+        .await
+    .map_err(|e|{
+        tracing::error!("database : {:?}", e);
+        AppError::Database(e)
+    });
+
+    match res {
+        // query execute
+        Ok(row) => {
+            match row {
+                // record updated
+                Some(_) => {
+                    Ok(())
+                },
+                // record not available
+                None => {
+                    Err(AppError::DbNotFound)
+                }
+            }
+        },
+        // query failed
+        Err(e) => {
+            Err(e)
+        }
+    }
+}
+
+pub async fn db_get_notification_retry_count(conn: &PgPool,notif_id:Uuid) -> Result<i32,AppError> {
+    let result = query_as!(
+        NotificationRetryCount,
+        r#"
+SELECT retry_count
+FROM notifications
+WHERE id=$1;
+"#,
+        notif_id
+    ).fetch_optional(conn)
+        .await
+        .map_err(|e|{
+            tracing::error!("database : {:?}", e);
+            AppError::Database(e)
+        });
+
+    match result {
+        // query execute
+        Ok(record) => {
+            match record {
+                // record exist
+                Some(record) => {
+                    Ok(record.retry_count)
                 },
                 // record not available
                 None => {

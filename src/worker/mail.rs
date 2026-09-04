@@ -9,7 +9,7 @@ use crate::service::{
     worker::deserialize_message,
     template_render::template_render,
 };
-use crate::repository::notification::{db_get_notification, db_update_notification_status};
+use crate::repository::notification::{db_get_notification, db_get_notification_retry_count, db_update_notification_retry_count, db_update_notification_status};
 
 pub async fn process_each_message_mail(state: SharedState,mut consumer: Consumer){
     println!("message processing started");
@@ -51,6 +51,19 @@ pub async fn process_each_message_mail(state: SharedState,mut consumer: Consumer
                    };
                     println!("{:?}",notification);
 
+                    // check if notification is sent again by rbmq
+                    if message.redelivered {
+                        // update retry count by 1
+                        let current_retry_count = notification.retry_count;
+                        let result= db_update_notification_retry_count(&(*state).db_pool,
+                                                                        notfication_id,
+                                                                        current_retry_count + 1)
+                            .await
+                            .map_err(|e| {
+                                println!("{}",e);
+                                return;
+                            });
+                    }
 
                     // get template
                     let template = match (*state).template_cache.get_template_mail(&(*state).db_pool,
@@ -78,6 +91,7 @@ pub async fn process_each_message_mail(state: SharedState,mut consumer: Consumer
                     ).await;
 
                     match mail_sent {
+                        // mail sent
                         Ok(_) => {
                             println!("mail sent");
 
@@ -92,29 +106,68 @@ pub async fn process_each_message_mail(state: SharedState,mut consumer: Consumer
                             ).await;
 
                             if let Err(e) = result {
-                                println!("notification status update failed : {}",e)
+                                println!("notification status update failed : {}",e);
+                                return;
                             }
+                            return;
 
                         },
+                        // mail failed to sent
                         Err(e) => {
                             println!("mail failed to sent : {}", e);
-
-                            // acknowledge message
-                            message.acker.nack(BasicNackOptions{
-                                multiple: false,
-                                requeue: false,
-                            }).await;
-
-                            // update in db that mail is sent
-                            let result = db_update_notification_status(
+                            // retry count
+                            let retry_count =  match db_get_notification_retry_count(
                                 &(*state).db_pool,
-                                notification.id,
-                                "FAILED",
-                            ).await;
+                                notification.id
+                            ).await {
+                                Ok(c) => c,
+                                Err(e) => {
+                                    println!("{}",e);
+                                    return;
+                                }
+                            };
 
-                            if let Err(e) = result {
-                                println!("notification status update failed : {}",e)
+                            // if its last retry
+                            if retry_count == 3 {
+                                // -ve acknowledge message and requeue
+                                let nack = message.acker.nack(BasicNackOptions{
+                                    multiple: false,
+                                    requeue: false,
+                                }).await;
+
+                                // update in db that mail sent is failed
+                                let result = db_update_notification_status(
+                                    &(*state).db_pool,
+                                    notification.id,
+                                    "FAILED",
+                                ).await;
+
+                                if let Err(e) = result {
+                                    println!("notification status update failed : {}",e);
+                                    return;
+                                }
+
+                            }else { // we have more retry
+                                // -ve acknowledge message and requeue
+                                let nack = message.acker.nack(BasicNackOptions{
+                                    multiple: false,
+                                    requeue: true,
+                                }).await;
+
+                                // update in db that mail sent is retrying
+                                let result = db_update_notification_status(
+                                    &(*state).db_pool,
+                                    notification.id,
+                                    "RETRYING",
+                                ).await;
+
+                                if let Err(e) = result {
+                                    println!("notification status update failed : {}",e);
+                                    return;
+                                }
                             }
+
+
                         },
                     }
 
